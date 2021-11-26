@@ -3,7 +3,7 @@ set -e
 
 # Remove all cpplint args and use CPPLINT_WEBKIT_ARGS instead
 FILES=${*: -1}
-if [ "$FILES" = "$0" ]; then 
+if [ "$FILES" = "$0" ]; then
   FILES=""
 fi
 
