@@ -6,7 +6,7 @@ Small script for checking [WebKit Code Style Guidelines](https://webkit.org/code
 
 ## Install
 
-* Install [check-webkit-style](https://github.com/jeppefrandsen/check-webkit-style): `sudo git clone https://github.com/jeppefrandsen/check-webkit-style /usr/bin/check-webkit-style` (The script is checking for a SCM so keep files as a git checkout)
+* Install [check-webkit-style](https://github.com/jeppefrandsen/check-webkit-style): `sudo git clone https://github.com/jeppefrandsen/check-webkit-style /usr/share/check-webkit-style` (The script is checking for a SCM so keep files as a git checkout)
 * Copy the `cpplint-webkit` script to `/usr/bin`
 * Install the [cpplint](https://marketplace.visualstudio.com/items?itemName=mine.cpplint) VS Code plugin
 * Add `"cpplint.cpplintPath": "/usr/bin/cpplint-webkit"` to your VS Code `settings.json`
