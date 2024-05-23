@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 # Remove all cpplint args and use CPPLINT_WEBKIT_ARGS instead
