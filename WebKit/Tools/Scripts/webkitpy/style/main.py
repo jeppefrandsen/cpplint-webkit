@@ -75,20 +75,6 @@ def change_directory(filesystem, checkout_root, paths):
                 # checkout root.  Interpret all of them relative to the
                 # current working directory, and do not change the current
                 # working directory.
-                _log.warn(
-"""Path-dependent style checks may not work correctly:
-
-  One of the given paths is outside the WebKit checkout of the current
-  working directory:
-
-    Path: %s
-    Checkout root: %s
-
-  Pass only files below the checkout root to ensure correct results.
-  See the help documentation for more info.
-"""
-                          % (path, checkout_root))
-
                 return paths
             rel_paths.append(rel_path)
         # If we got here, the conversion was successful.
@@ -128,7 +114,7 @@ class CheckWebKitStyle(object):
         args = sys.argv[1:]
 
         host = Host()
-        #host.initialize_scm()
+        host.initialize_scm()
 
         stderr = self._engage_awesome_stderr_hacks()
 
