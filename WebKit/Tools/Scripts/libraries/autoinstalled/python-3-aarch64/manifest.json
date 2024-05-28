@@ -1,0 +1,70 @@
+{
+    "setuptools": {
+        "index": "pypi.org",
+        "version": "56"
+    },
+    "wheel": {
+        "index": "pypi.org",
+        "version": "0.35.1"
+    },
+    "six": {
+        "index": "pypi.org",
+        "version": "1.16"
+    },
+    "pyparsing": {
+        "index": "pypi.org",
+        "version": "2.4.7"
+    },
+    "packaging": {
+        "index": "pypi.org",
+        "version": "21.3"
+    },
+    "tomli": {
+        "index": "pypi.org",
+        "version": "2.0.1"
+    },
+    "setuptools_scm": {
+        "index": "pypi.org",
+        "version": "6.4.2"
+    },
+    "configparser": {
+        "index": "pypi.org",
+        "version": "4.0.2"
+    },
+    "urllib3": {
+        "index": "pypi.org",
+        "version": "1.26.17"
+    },
+    "pycodestyle": {
+        "index": "pypi.org",
+        "version": "2.5"
+    },
+    "whichcraft": {
+        "index": "pypi.org",
+        "version": "0.6.1"
+    },
+    "mock": {
+        "index": "pypi.org",
+        "version": "4"
+    },
+    "requests": {
+        "index": "pypi.org",
+        "version": "2.26"
+    },
+    "chardet": {
+        "index": "pypi.org",
+        "version": "3.0.4"
+    },
+    "certifi": {
+        "index": "pypi.org",
+        "version": "2022.12.7"
+    },
+    "idna": {
+        "index": "pypi.org",
+        "version": "2.10"
+    },
+    "socks": {
+        "index": "pypi.org",
+        "version": "1.7.1"
+    }
+}
