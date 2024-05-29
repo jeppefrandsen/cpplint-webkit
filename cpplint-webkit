@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Remove all cpplint args and use CPPLINT_WEBKIT_ARGS instead
 FILES=${*: -1}
