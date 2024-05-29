@@ -34,7 +34,7 @@ from webkitpy.tool.steps.options import Options
 
 _log = logging.getLogger(__name__)
 
-_formatted_suffixes = set(['.cpp', '.cc', '.c', '.h', '.hh', '.mm', '.hpp'])
+_formatted_suffixes = set(['.cpp', '.cc', '.c', '.h', '.hh', '.mm'])
 
 
 def _is_formatted(file_name):
