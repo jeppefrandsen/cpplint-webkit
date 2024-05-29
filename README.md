@@ -1,6 +1,6 @@
 # cpplint-webkit
 
-Small script for checking [WebKit Code Style Guidelines](https://webkit.org/code-style-guidelines/) with [cpplint](https://marketplace.visualstudio.com/items?itemName=mine.cpplint) Visual Studio code plugin. The repository also contains the `check-webkit-style` tool extracted from the [WebKit](https://github.com/WebKit/WebKit/) repository with minor modifications e.g. to include .hpp files in the whitelist.
+Small script for checking [WebKit Code Style Guidelines](https://webkit.org/code-style-guidelines/) with [cpplint](https://marketplace.visualstudio.com/items?itemName=mine.cpplint) Visual Studio code plugin. The repository also contains the `check-webkit-style` tool extracted from the [WebKit](https://github.com/WebKit/WebKit/) repository with minor modifications to make it work without the complete codebase.
 
 ![](images/issue1.png) ![](images/issue2.png)
 
