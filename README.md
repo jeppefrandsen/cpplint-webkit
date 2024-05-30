@@ -11,3 +11,5 @@ Small script for checking [WebKit Code Style Guidelines](https://webkit.org/code
 * Install the tool e.g. in a docker container by running `./install`
 * Install the [cpplint](https://marketplace.visualstudio.com/items?itemName=mine.cpplint) VS Code plugin (can also be added to e.g. `devcontainer.json` for automatic installation)
 * Configure any options to WebKit's `check-webkit-style` with the `CPPLINT_WEBKIT_ARGS` environment variable
+* Make sure that `/usr/local/bin` is in your evironment `PATH` variable
+* Run `git config --global --add safe.directory '*'` to make sure the `/usr/share/WebKit` is set to be safe
