@@ -186,7 +186,7 @@ class RunTest(unittest.TestCase, StreamTestingMixin):
         self.assertEqual(details.initial_results.total, test.TOTAL_TESTS)
         self.assertEqual(details.initial_results.expected_skips, test.TOTAL_SKIPS)
         self.assertEqual(len(details.initial_results.unexpected_results_by_name), test.UNEXPECTED_PASSES + test.UNEXPECTED_FAILURES)
-        self.assertEqual(details.exit_code, test.UNEXPECTED_FAILURES - 3)  # FIXME: Figure out why - 3 is needed.
+        self.assertEqual(details.exit_code, test.UNEXPECTED_FAILURES - 4)  # 4 tests succeed on retry
         self.assertEqual(details.retry_results.total, test.TOTAL_RETRIES)
 
         one_line_summary = "%d tests ran as expected, %d didn't:\n" % (
@@ -445,7 +445,7 @@ class RunTest(unittest.TestCase, StreamTestingMixin):
 
     def serial_test_run_singly_actually_runs_tests(self):
         details, _, _ = logging_run(['--run-singly'], tests_included=True)
-        self.assertEqual(details.exit_code, test.UNEXPECTED_FAILURES - 2)  # FIXME: Figure out why - 2 is needed.
+        self.assertEqual(details.exit_code, test.UNEXPECTED_FAILURES - 3)  # 3 tests succeed on retry
 
     def test_single_file(self):
         tests_run = get_tests_run(['passes/text.html'])
@@ -819,6 +819,40 @@ class RunTest(unittest.TestCase, StreamTestingMixin):
         self.assertTrue(host.filesystem.exists('/tmp/layout-test-results/failures/flaky/text-actual.txt'))
         self.assertFalse(host.filesystem.exists('retries'))
 
+    def test_retrying_multiple_failures(self):
+        host = MockHost()
+        details, err, _ = logging_run(['--debug-rwt-logging', 'corner-cases/multiple-failures/failure-crash.html'], tests_included=True, host=host)
+        self.assertEqual(details.exit_code, 1)
+        self.assertTrue('Retrying' in err.getvalue())
+
+        actual_dictionary = json.loads(host.filesystem.read_text_file('/tmp/layout-test-results/full_results.json')[len('ADD_RESULTS('):-2])
+        self.assertEqual(
+            actual_dictionary['tests'], {
+                'corner-cases': {'multiple-failures': {'failure-crash.html': {
+                    'report': 'REGRESSION',
+                    'expected': 'PASS',
+                    'actual': 'TEXT CRASH',
+                }}}
+            },
+        )
+
+    def test_retrying_multiple_failures_expected(self):
+        host = MockHost()
+        details, err, _ = logging_run(['--debug-rwt-logging', 'corner-cases/multiple-failures/failure-timeout.html'], tests_included=True, host=host)
+        self.assertEqual(details.exit_code, 0)
+        self.assertTrue('Retrying' in err.getvalue())
+
+        actual_dictionary = json.loads(host.filesystem.read_text_file('/tmp/layout-test-results/full_results.json')[len('ADD_RESULTS('):-2])
+        self.assertEqual(
+            actual_dictionary['tests'], {
+                'corner-cases': {'multiple-failures': {'failure-timeout.html': {
+                    'report': 'FLAKY',
+                    'expected': 'PASS TIMEOUT',
+                    'actual': 'TEXT TIMEOUT',
+                }}}
+            },
+        )
+
     def test_retrying_force_pixel_tests(self):
         host = MockHost()
         details, err, _ = logging_run(['--no-pixel-tests', 'failures/unexpected/text-image-checksum.html'], tests_included=True, host=host)
@@ -1148,7 +1182,7 @@ class RebaselineTest(unittest.TestCase, StreamTestingMixin):
                 "/tmp/layout-test-results/layout_test_perf_metrics.json",
                 "/tmp/layout-test-results/stats.json",
             },
-            set(file_list),  # On Python 2 dict.keys returns a list, not a set-like object.
+            file_list,
         )
 
     def test_missing_results(self):
@@ -1176,7 +1210,7 @@ class RebaselineTest(unittest.TestCase, StreamTestingMixin):
                 "/tmp/layout-test-results/layout_test_perf_metrics.json",
                 "/tmp/layout-test-results/stats.json",
             },
-            set(file_list),  # On Python 2 dict.keys returns a list, not a set-like object.
+            file_list,
         )
 
     def test_new_baseline(self):
@@ -1185,7 +1219,7 @@ class RebaselineTest(unittest.TestCase, StreamTestingMixin):
         host = MockHost()
         host.filesystem.clear_written_files()
         details, err, _ = logging_run(
-            ['--pixel-tests', '--new-baseline', 'passes/image.html', 'failures/expected/missing_image.html'],
+            ['--pixel-tests', '--new-baseline', '--add-redundant-platform-results', 'passes/image.html', 'failures/expected/missing_image.html'],
             tests_included=True, host=host, new_results=True)
         file_list = host.filesystem.written_files.keys()
         self.assertEqual(details.exit_code, 0)
@@ -1199,7 +1233,7 @@ class RebaselineTest(unittest.TestCase, StreamTestingMixin):
                 "/tmp/layout-test-results/layout_test_perf_metrics.json",
                 "/tmp/layout-test-results/stats.json",
             },
-            set(file_list),  # On Python 2 dict.keys returns a list, not a set-like object.
+            file_list,
         )
 
 

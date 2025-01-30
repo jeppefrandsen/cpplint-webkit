@@ -31,7 +31,6 @@
 # FIXME: This file needs to be unified with common/config/ports.py .
 
 import logging
-import os
 
 from webkitpy.common import webkit_finder
 from webkitpy.common.memoized import memoized
@@ -65,7 +64,28 @@ class Config(object):
 
     def build_directory(self, configuration, for_host=False):
         """Returns the path to the build directory for the configuration."""
-        return os.getcwd()
+        if configuration:
+            flags = ["--configuration", self.flag_for_configuration(configuration)]
+        else:
+            configuration = ""
+            flags = []
+
+        if self._port_implementation and not for_host:
+            flags.append('--' + self._port_implementation)
+
+        if not self._build_directories.get(configuration):
+            args = ["perl", self._webkit_finder.path_to_script("webkit-build-directory")] + flags
+            output = self._executive.run_command(args, cwd=self._webkit_finder.webkit_base(), return_stderr=False).rstrip()
+            parts = output.split("\n")
+            self._build_directories[configuration] = parts[0]
+
+            if len(parts) == 2:
+                default_configuration = parts[1][len(parts[0]):]
+                if default_configuration.startswith("/"):
+                    default_configuration = default_configuration[1:]
+                self._build_directories[default_configuration] = parts[1]
+
+        return self._build_directories[configuration]
 
     def flag_for_configuration(self, configuration):
         if not configuration:

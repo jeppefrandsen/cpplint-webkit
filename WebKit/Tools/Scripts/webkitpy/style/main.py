@@ -20,16 +20,14 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import codecs
 import logging
 import sys
 
 import webkitpy.style.checker as checker
-from webkitpy.style.patchreader import PatchReader
+from webkitpy.common.host import Host
 from webkitpy.style.checker import StyleProcessor
 from webkitpy.style.filereader import TextFileReader
-from webkitpy.common.host import Host
-
+from webkitpy.style.patchreader import PatchReader
 
 _log = logging.getLogger(__name__)
 
@@ -75,6 +73,20 @@ def change_directory(filesystem, checkout_root, paths):
                 # checkout root.  Interpret all of them relative to the
                 # current working directory, and do not change the current
                 # working directory.
+                _log.warn(
+"""Path-dependent style checks may not work correctly:
+
+  One of the given paths is outside the WebKit checkout of the current
+  working directory:
+
+    Path: %s
+    Checkout root: %s
+
+  Pass only files below the checkout root to ensure correct results.
+  See the help documentation for more info.
+"""
+                          % (path, checkout_root))
+
                 return paths
             rel_paths.append(rel_path)
         # If we got here, the conversion was successful.
@@ -87,42 +99,17 @@ def change_directory(filesystem, checkout_root, paths):
 
 
 class CheckWebKitStyle(object):
-    def _engage_awesome_stderr_hacks(self):
-        # Python 3 strings are unicode, we don't need to encode stderr
-        if sys.version_info > (3, 0):
-            return sys.stderr
-
-        # Change stderr to write with replacement characters so we don't die
-        # if we try to print something containing non-ASCII characters.
-        stderr = codecs.StreamReaderWriter(sys.stderr,
-                                           codecs.getreader('utf8'),
-                                           codecs.getwriter('utf8'),
-                                           'replace')
-        # Setting an "encoding" attribute on the stream is necessary to
-        # prevent the logging module from raising an error.  See
-        # the checker.configure_logging() function for more information.
-        stderr.encoding = "UTF-8"
-
-        # FIXME: Change webkitpy.style so that we do not need to overwrite
-        #        the global sys.stderr.  This involves updating the code to
-        #        accept a stream parameter where necessary, and not calling
-        #        sys.stderr explicitly anywhere.
-        sys.stderr = stderr
-        return stderr
-
     def main(self):
         args = sys.argv[1:]
 
         host = Host()
         host.initialize_scm()
 
-        stderr = self._engage_awesome_stderr_hacks()
-
         # Checking for the verbose flag before calling check_webkit_style_parser()
         # lets us enable verbose logging earlier.
         is_verbose = "-v" in args or "--verbose" in args
 
-        checker.configure_logging(stream=stderr, is_verbose=is_verbose)
+        checker.configure_logging(stream=sys.stderr, is_verbose=is_verbose)
         _log.debug("Verbose logging enabled.")
 
         parser = checker.check_webkit_style_parser()

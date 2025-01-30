@@ -269,11 +269,13 @@ def summarize_results(port_obj, expectations_by_type, initial_results, retry_res
         expected = 'SKIP'
         expectations = list(expectations_by_type.values())[0]
         for element in expectations_by_type.values():
+            if element.model().has_modifier(test_name, test_expectations.SKIP):
+                continue
+
             test_expectation = element.filtered_expectations_for_test(test_name, pixel_tests_enabled, port_obj._options.world_leaks)
             expected = element.model().expectations_to_string(test_expectation)
-            if expected != 'SKIP':
-                expectations = element
-                continue
+            expectations = element
+            continue
 
         result_type = result.type
         actual = [keywords[result_type]]
@@ -310,20 +312,13 @@ def summarize_results(port_obj, expectations_by_type, initial_results, retry_res
                 test_dict['report'] = 'MISSING'
         elif test_name in initial_results.unexpected_results_by_name:
             if retry_results and test_name in retry_results.unexpected_results_by_name:
+                num_regressions += 1
+                test_dict['report'] = 'REGRESSION'
                 retry_result_type = retry_results.unexpected_results_by_name[test_name].type
                 if result_type != retry_result_type:
-                    if enabled_pixel_tests_in_retry and result_type == test_expectations.TEXT and (retry_result_type == test_expectations.IMAGE_PLUS_TEXT or retry_result_type == test_expectations.MISSING):
-                        if retry_result_type == test_expectations.MISSING:
-                            num_missing += 1
-                        num_regressions += 1
-                        test_dict['report'] = 'REGRESSION'
-                    else:
-                        num_flaky += 1
-                        test_dict['report'] = 'FLAKY'
                     actual.append(keywords[retry_result_type])
-                else:
-                    num_regressions += 1
-                    test_dict['report'] = 'REGRESSION'
+                    if enabled_pixel_tests_in_retry and result_type == test_expectations.TEXT and retry_result_type == test_expectations.MISSING:
+                        num_missing += 1
             elif retry_results and test_name in retry_results.expected_results_by_name:
                 retry_result_name = keywords[retry_results.expected_results_by_name[test_name].type]
                 if retry_result_name not in actual:

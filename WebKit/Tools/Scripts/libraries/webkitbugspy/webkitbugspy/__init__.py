@@ -20,9 +20,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
+if sys.version_info < (3, 9):  # noqa: UP036
+    raise ImportError("webkitbugspy requires Python 3.9 or above")
+
 import logging
 import os
-import sys
 
 log = logging.getLogger('webkitbugspy')
 
@@ -42,11 +46,11 @@ try:
 except ImportError:
     raise ImportError(
         "'webkitcorepy' could not be found on your Python path.\n" +
-        "You are not running from a WebKit checkout.\n" +
-        "Please install webkitcorepy with `pip install webkitcorepy --extra-index-url <package index URL>`"
+        "You are not running from a complete WebKit checkout.\n" +
+        "See https://github.com/WebKit/WebKit/tree/main/Tools/Scripts/libraries/webkitcorepy"
     )
 
-version = Version(0, 15, 0)
+version = Version(0, 15, 1)
 
 from .user import User
 from .issue import Issue

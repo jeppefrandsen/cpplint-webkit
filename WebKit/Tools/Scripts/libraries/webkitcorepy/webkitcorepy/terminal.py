@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+# Copyright (C) 2021-2024 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,10 +29,7 @@ import webbrowser
 if not sys.platform.startswith('win'):
     import readline
 
-from webkitcorepy import StringIO, run, Timer, run
-
-if sys.version_info > (3, 0):
-    file = io.IOBase
+from webkitcorepy import Timer, run
 
 
 class Terminal(object):
@@ -48,9 +45,9 @@ class Terminal(object):
         try:
             if alert_after and cls.isatty(sys.stdout):
                 with Timer(alert_after, lambda: cls.ring(sys.stdout)):
-                    return (input if sys.version_info > (3, 0) else raw_input)(*args, **kwargs)
+                    return input(*args, **kwargs)
             else:
-                return (input if sys.version_info > (3, 0) else raw_input)(*args, **kwargs)
+                return input(*args, **kwargs)
         except KeyboardInterrupt:
             sys.stderr.write('\nUser interrupted program\n')
             sys.exit(1)
@@ -110,9 +107,22 @@ class Terminal(object):
 
     @classmethod
     def assert_writeable_stream(cls, target):
-        if not isinstance(target, (io.IOBase, file, StringIO)):
+        file_like_object = (
+            hasattr(target, 'read') and callable(target.read)
+            or hasattr(target, 'write') and callable(target.write)
+        )
+        if not file_like_object:
             raise ValueError('{} is not an IO object'.format(target))
-        if not isinstance(target, StringIO) and not (getattr(target, 'writable', None) and target.writable()) and 'w' not in getattr(target, 'mode', 'r'):
+
+        try:
+            file_like_appears_writable = (
+                (target.writable() or target.mode and 'w' in target.mode)
+                and hasattr(target, 'write') and callable(target.write)
+            )
+        except (io.UnsupportedOperation, AttributeError):
+            file_like_appears_writable = False
+
+        if not file_like_appears_writable:
             raise ValueError('{} is an IO object, but is not writable'.format(target))
 
     @classmethod
@@ -131,7 +141,11 @@ class Terminal(object):
     @classmethod
     @contextlib.contextmanager
     def override_atty(cls, target, isatty=True):
-        if not isinstance(target, (io.IOBase, file, StringIO)):
+        file_like_object = (
+            hasattr(target, 'read') and callable(target.read)
+            or hasattr(target, 'write') and callable(target.write)
+        )
+        if not file_like_object:
             raise ValueError('{} is not an IO object'.format(target))
 
         try:
@@ -189,8 +203,7 @@ class Terminal(object):
                 process = run(['explorer', url])
             else:
                 # TODO: Use shutil directly when Python 2.7 is removed
-                from whichcraft import which
-                if sys.platform.startswith('linux') and which('xdg-open'):
+                if sys.platform.startswith('linux') and shutil.which('xdg-open'):
                     process = run(['xdg-open', url])
                 else:
                     process = run(['open', url])

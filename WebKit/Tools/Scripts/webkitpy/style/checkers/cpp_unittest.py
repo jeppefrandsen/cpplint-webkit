@@ -1038,6 +1038,16 @@ class CppStyleTest(CppStyleTestBase):
             'instead of static_cast<Text*>'
             '  [readability/check] [4]')
 
+    def test_gst_structure_get(self):
+        error_message = 'Consider using gstStructureGet<T>() instead  [readability/check] [4]'
+        self.assert_lint('gst_structure_get_int(s, "foo", &bar)', error_message)
+        self.assert_lint('gst_structure_get_int64(s, "foo", &bar)', error_message)
+        self.assert_lint('gst_structure_get_uint(s, "foo", &bar)', error_message)
+        self.assert_lint('gst_structure_get_double(s, "foo", &bar)', error_message)
+        self.assert_lint('gst_structure_get_boolean(s, "foo", &bar)', error_message)
+        self.assert_lint('const char* foo = gst_structure_get_string(s, "foo")', 'Consider using gstStructureGetString() instead  [readability/check] [4]')
+        self.assert_lint('const char* foo = gst_structure_get_name(s)', 'Consider using gstStructureGetName() instead  [readability/check] [4]')
+
     # We cannot test this functionality because of difference of
     # function definitions.  Anyway, we may never enable this.
     #
@@ -1586,42 +1596,6 @@ class CppStyleTest(CppStyleTestBase):
             'Did you mean "else if"? If not, start a new line for "if".'
             '  [readability/braces] [4]')
 
-    # Test suspicious usage of memset. Specifically, a 0
-    # as the final argument is almost certainly an error.
-    def test_suspicious_usage_of_memset(self):
-        # Normal use is okay.
-        self.assert_lint(
-            '    memset(buf, 0, sizeof(buf))',
-            '')
-
-        # A 0 as the final argument is almost certainly an error.
-        self.assert_lint(
-            '    memset(buf, sizeof(buf), 0)',
-            'Did you mean "memset(buf, 0, sizeof(buf))"?'
-            '  [runtime/memset] [4]')
-        self.assert_lint(
-            '    memset(buf, xsize * ysize, 0)',
-            'Did you mean "memset(buf, 0, xsize * ysize)"?'
-            '  [runtime/memset] [4]')
-
-        # There is legitimate test code that uses this form.
-        # This is okay since the second argument is a literal.
-        self.assert_lint(
-            "    memset(buf, 'y', 0)",
-            '')
-        self.assert_lint(
-            '    memset(buf, 4, 0)',
-            '')
-        self.assert_lint(
-            '    memset(buf, -1, 0)',
-            '')
-        self.assert_lint(
-            '    memset(buf, 0xF1, 0)',
-            '')
-        self.assert_lint(
-            '    memset(buf, 0xcd, 0)',
-            '')
-
     def test_check_posix_threading(self):
         self.assert_lint('sctime_r()', '')
         self.assert_lint('strtok_r()', '')
@@ -1878,7 +1852,6 @@ class CppStyleTest(CppStyleTestBase):
             'strcpy(destination, source)',
             'Almost always, snprintf is better than strcpy.'
             '  [security/printf] [4]')
-        self.assert_lint('strstr(haystack, "needle")', '')
 
     # Test potential format string bugs like printf(foo).
     def test_format_strings(self):
@@ -2034,6 +2007,28 @@ class CppStyleTest(CppStyleTestBase):
             'Never soft-link frameworks in headers. Put the soft-link macros in a source file, or create MyFrameworkSoftLink.{cpp,mm} instead.'
             '  [softlink/header] [5]',
             file_name='foo.h')
+
+    def test_inlines_header(self):
+        self.assert_lint(
+            '''#include "FooInlines.h"''',
+            'Never put an Inlines.h header in a non-Inlines.h header.'
+            '  [build-speed/inlines] [4]',
+            file_name='foo.h')
+
+        self.assert_lint(
+            '''#include "FooInlines.h"''',
+            '',
+            file_name='foo.cpp')
+
+        self.assert_lint(
+            '''#include "FooInlines.h"''',
+            '',
+            file_name='foo.mm')
+
+        self.assert_lint(
+            '''#include "FooInlines.h"''',
+            '',
+            file_name='BarInlines.h')
 
     # Variable-length arrays are not permitted.
     def test_variable_length_array_detection(self):
@@ -2415,6 +2410,7 @@ class CppStyleTest(CppStyleTestBase):
     def test_cpp_lambda_functions(self):
         self.assert_lint('        [&] (Type argument) {', '')
         self.assert_lint('        [] {', '')
+        self.assert_lint('        [foo call:@[ bar, baz ]] completionHandler:^{', '', 'foo.mm')
         self.assert_lint('        [ =] (Type argument) {', 'Extra space in capture list.  [whitespace/brackets] [4]')
         self.assert_lint('        [var, var_ref&] {', '')
         self.assert_lint('        [var , var_ref&] {', 'Extra space in capture list.  [whitespace/brackets] [4]')
@@ -2423,6 +2419,9 @@ class CppStyleTest(CppStyleTestBase):
     def test_objective_c_block(self):
         self.assert_lint('        ^(var, var_ref) {', '', 'foo.mm')
         self.assert_lint('        ^(var, var_ref) {', '', 'foo.m')
+        self.assert_lint('        ^NSArray<id<Protocol>> *(var) {', '', 'foo.mm')
+        self.assert_lint('        ^BOOL(var) {', '', 'foo.mm')
+        self.assert_lint('        ^NSType *(var) {', '', 'foo.mm')
         self.assert_lint('        ^(var , var_ref) {', 'Extra space in block arguments.  [whitespace/brackets] [4]', 'foo.m')
         self.assert_lint('        ^(var,var_ref) {', 'Missing space after ,  [whitespace/comma] [3]', 'foo.m')
         self.assert_lint('        ^(var, var_ref) {', 'Place brace on its own line for function definitions.  [whitespace/braces] [4]', 'foo.cpp')
@@ -2430,6 +2429,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assert_lint('        ^ {', 'Extra space between ^ and block definition.  [whitespace/brackets] [4]', 'foo.m')
         self.assert_lint('        ^   {', 'Extra space between ^ and block definition.  [whitespace/brackets] [4]', 'foo.m')
         self.assert_lint('        ^ (arg1, arg2) {', 'Extra space between ^ and block arguments.  [whitespace/brackets] [4]', 'foo.m')
+        self.assert_lint('        ^   (arg1, arg2) {', 'Extra space between ^ and block arguments.  [whitespace/brackets] [4]', 'foo.m')
         self.assert_lint('        ^(arg1, arg2){', 'Missing space before {  [whitespace/braces] [5]', 'foo.m')
 
     def test_objective_c_block_as_argument(self):
@@ -4488,6 +4488,148 @@ class NoNonVirtualDestructorsTest(CppStyleTestBase):
                 enum Foo { FOO_ONE, FOO_TWO };''',
             '')
 
+    def test_enum_no_yes(self):
+        self.assert_multi_line_lint(
+            '''\
+                enum { No, Yes };
+                enum {
+                    No, Yes
+                };
+                enum {
+                    No,
+                    Yes
+                };
+                enum Foo { No, Yes };
+                enum Foo {
+                    No, Yes
+                };
+                enum Foo {
+                    No,
+                    Yes
+                };
+                enum class Foo { No, Yes };
+                enum class Foo {
+                    No, Yes
+                };
+                enum class Foo {
+                    No,
+                    Yes
+                };''',
+            '')
+
+        self.assert_multi_line_lint(
+            '''\
+                enum : bool { No, Yes };
+                enum : bool {
+                    No, Yes
+                };
+                enum : bool {
+                    No,
+                    Yes
+                };
+                enum Foo : bool { No, Yes };
+                enum Foo : bool {
+                    No, Yes
+                };
+                enum Foo : bool {
+                    No,
+                    Yes
+                };
+                enum class Foo : bool { No, Yes };
+                enum class Foo : bool {
+                    No, Yes
+                };
+                enum class Foo : bool {
+                    No,
+                    Yes
+                };''',
+            '')
+
+        self.assert_multi_line_lint(
+            '''\
+                enum { Yes, No };
+                enum {
+                    Yes, No
+                };
+                enum {
+                    Yes,
+                    No
+                };
+                enum Foo { Yes, No };
+                enum Foo {
+                    Yes, No
+                };
+                enum Foo {
+                    Yes,
+                    No
+                };
+                enum class Foo { Yes, No };
+                enum class Foo {
+                    Yes, No
+                };
+                enum class Foo {
+                    Yes,
+                    No
+                };''',
+            '')
+
+        self.assert_lint(
+            'enum : bool { Yes, No };',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum : bool {
+                    Yes, No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum : bool {
+                    Yes,
+                    No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            'enum Foo : bool { Yes, No };',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum Foo : bool {
+                    Yes, No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum Foo : bool {
+                    Yes,
+                    No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            'enum class Foo : bool { Yes, No };',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum class Foo : bool {
+                    Yes, No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
+        self.assert_lint(
+            '''\
+                enum class Foo : bool {
+                    Yes,
+                    No
+                };''',
+            'Change the order to { No, Yes }.  [readability/enum_no_yes] [5]')
+
     def test_enum_trailing_semicolon(self):
         self.assert_lint(
             'enum MyEnum { Value1, Value2 };',
@@ -5084,14 +5226,14 @@ class WebKitStyleTest(CppStyleTestBase):
             '')
         self.assert_multi_line_lint(
             '#define MyMacro(name, status) \\\n'
-            '    if (strstr(arg, #name) { \\\n'
+            '    if (contains(arg, #name)) { \\\n'
             '        name##_ = !status; \\\n'
             '        continue; \\\n'
             '    }\n',
             '')
         self.assert_multi_line_lint(
             '#define MyMacro(name, status) \\\n'
-            '    if (strstr(arg, #name) \\\n'
+            '    if (contains(arg, #name)) \\\n'
             '        name##_ = !status; \\\n'
             '        continue;\n',
             'Multi line control clauses should use braces.  [whitespace/braces] [4]')
@@ -6008,6 +6150,34 @@ class WebKitStyleTest(CppStyleTestBase):
             "  [runtime/lock_guard] [4]",
             'foo.mm')
 
+    def test_log(self):
+        error_string = "Use a channel to log with 'LOG...(MyChannel,...)'.  [runtime/log] [4]"
+
+        self.assert_lint(
+            'LOG_WITH_STREAM(Channel, stream << 2);',
+            '',
+            'foo.cpp')
+
+        self.assert_lint(
+            'CUSTOM_MACRO_WTF_ALWAYS_LOG(2);',
+            '',
+            'foo.cpp')
+
+        self.assert_lint(
+            '// WTF_ALWAYS_LOG(2);',
+            '',
+            'foo.cpp')
+
+        self.assert_lint(
+            'WTFLogAlways("foo");',
+            error_string,
+            'foo.cpp')
+
+        self.assert_lint(
+            'WTF_ALWAYS_LOG(34);',
+            error_string,
+            'foo.cpp')
+
     def test_once_flag(self):
         self.assert_lint(
             'static std::once_flag onceKey;',
@@ -6076,6 +6246,97 @@ class WebKitStyleTest(CppStyleTestBase):
             "std::once_flag / dispatch_once_t should be in `static` storage."
             "  [runtime/once_flag] [4]",
             'foo.mm')
+
+    def test_safer_cpp(self):
+        self.assert_lint(
+            'template<> struct IsDeprecatedWeakRefSmartPointerException<WebCore::TimerAlignment> : std::true_type { };',
+            'Do not add IsDeprecatedWeakRefSmartPointerException.  [safercpp/weak_ref_exception] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'IsDeprecatedWeakRefSmartPointerException should be removed',
+            '',
+            'foo.cpp')
+
+        self.assert_lint(
+            'template<> struct IsDeprecatedTimerSmartPointerException<WebCore::TimerAlignment> : std::true_type { };',
+            'Do not add IsDeprecatedTimerSmartPointerException.  [safercpp/timer_exception] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'IsDeprecatedTimerSmartPointerException should be removed',
+            '',
+            'foo.cpp')
+
+        self.assert_lint(
+            'int number = atoi(foo);',
+            'Use parseInteger<int>() instead of atoi().  [safercpp/atoi] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'memset(foo, 0);',
+            'Use memsetSpan() / zeroSpan() instead of memset().  [safercpp/memset] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'memset_s(foo, 0);',
+            'Use secureMemsetSpan() instead of memset_s().  [safercpp/memset_s] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'memcpy(destination, source, 10);',
+            'Use memcpySpan() instead of memcpy().  [safercpp/memcpy] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'memmove(destination, source, 10);',
+            'Use memmoveSpan() instead of memmove().  [safercpp/memmove] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'if (!memcmp(a, b)) {',
+            'Use equalSpans() / spanHasPrefix() / spanHasSuffix() / compareSpans() instead of memcmp().  [safercpp/memcmp] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'char* result = memmem(haystack, strlen(haystack), needle, strlen(needle));',
+            'Use WTF::find() or WTF::contains() instead of memmem().  [safercpp/memmem] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'char* result = memchr(haystack, c, strlen(haystack));',
+            'Use WTF::find() or WTF::contains() instead of memchr().  [safercpp/memchr] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'char* result = strchr(haystack, c);',
+            'Use WTF::find() or WTF::contains() instead of strchr().  [safercpp/strchr] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'char* result = strstr(haystack, needle);',
+            'Use WTF::find() or WTF::contains() instead of strstr().  [safercpp/strstr] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'int result = strcmp(a, "foo");',
+            'strcmp() is unsafe.  [safercpp/strcmp] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'int result = strncmp(a, "foo", 3);',
+            'strncmp() is unsafe.  [safercpp/strncmp] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'auto* result = xpc_dictionary_get_data(dictionary, "foo", &size);',
+            'Use xpc_dictionary_get_data_span() instead of xpc_dictionary_get_data().  [safercpp/xpc_dictionary_get_data] [4]',
+            'foo.cpp')
+
+        self.assert_lint(
+            'auto* result = xpc_dictionary_get_string(dictionary, "foo");',
+            'Use xpc_dictionary_get_wtfstring() instead of xpc_dictionary_get_string().  [safercpp/xpc_dictionary_get_string] [4]',
+            'foo.cpp')
 
     def test_ctype_fucntion(self):
         self.assert_lint(
@@ -6727,13 +6988,15 @@ class WebKitStyleTest(CppStyleTestBase):
 
     def test_os_version_checks(self):
         self.assert_lint('#if PLATFORM(IOS_FAMILY) && __IPHONE_OS_VERSION_MIN_REQUIRED < 110000', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]')
-        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]')
-        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101300', '', 'Source/WTF/wtf/PlatformEnableCocoa.h')
-        self.assert_lint('#if PLATFORM(MAC) && __IPHONE_OS_VERSION_MIN_REQUIRED > 120000', '', 'Source/WTF/wtf/PlatformHave.h')
-        self.assert_lint('#if PLATFORM(MAC) && __IPHONE_OS_VERSION_MIN_REQUIRED > 120400', 'Incorrect OS version check. VERSION_MIN_REQUIRED values never include a minor version. You may be looking for a combination of VERSION_MIN_REQUIRED for target OS version check and VERSION_MAX_ALLOWED for SDK check.  [build/version_check] [5]', 'Source/WTF/wtf/PlatformEnableCocoa.h')
+        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 130000', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]')
+        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 130000', '', 'Source/WTF/wtf/PlatformEnableCocoa.h')
+        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED > 120000', '', 'Source/WTF/wtf/PlatformHave.h')
+        self.assert_lint('#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED > 120400', '', 'Source/WTF/wtf/PlatformEnableCocoa.h')
+        self.assert_lint('#if PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 170401', 'Incorrect OS version check. VERSION_MIN_REQUIRED values never include a tiny version.  [build/version_check] [5]', 'Source/WTF/wtf/PlatformEnableCocoa.h')
+        self.assert_lint('#if PLATFORM(IOS) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 170401', 'Incorrect OS version check. VERSION_MAX_ALLOWED values never include a tiny version.  [build/version_check] [5]', 'Source/WTF/wtf/PlatformEnableCocoa.h')
         self.assert_lint('#if !TARGET_OS_SIMULATOR && __WATCH_OS_VERSION_MIN_REQUIRED < 50000', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]')
-        self.assert_lint('#if (PLATFORM(IOS_FAMILY) && __IPHONE_OS_VERSION_MIN_REQUIRED < 110000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101304)', ['Incorrect OS version check. VERSION_MIN_REQUIRED values never include a minor version. You may be looking for a combination of VERSION_MIN_REQUIRED for target OS version check and VERSION_MAX_ALLOWED for SDK check.  [build/version_check] [5]', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]'])
-        self.assert_lint('#define FOO ((PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101302 && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300))', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]')
+        self.assert_lint('#if (PLATFORM(IOS_FAMILY) && __IPHONE_OS_VERSION_MIN_REQUIRED < 110000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 130401)', ['Incorrect OS version check. VERSION_MIN_REQUIRED values never include a tiny version.  [build/version_check] [5]', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]'])
+        self.assert_lint('#define FOO ((PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 130401 && __MAC_OS_X_VERSION_MIN_REQUIRED >= 130000))', ['Incorrect OS version check. VERSION_MAX_ALLOWED values never include a tiny version.  [build/version_check] [5]', 'Misplaced OS version check. Please use a named macro in one of headers in the wtf/Platform.h suite of files or an appropriate internal file.  [build/version_check] [5]'])
 
     def test_other(self):
         # FIXME: Implement this.

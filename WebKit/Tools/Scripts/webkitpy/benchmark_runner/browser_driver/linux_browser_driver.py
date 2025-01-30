@@ -112,7 +112,7 @@ class LinuxBrowserDriver(BrowserDriver):
         # So do not capture stdout/stderr, let the subprocess flush it to the default stdout/stderr.
         self._browser_process = subprocess.Popen(
             exec_args, env=self._test_environ,
-            **(dict(encoding='utf-8') if sys.version_info >= (3, 6) else dict())
+            encoding='utf-8',
         )
 
     def launch_webdriver(self, url, driver):
@@ -122,6 +122,10 @@ class LinuxBrowserDriver(BrowserDriver):
             _log.error('Failed to maximize {browser} window - Error: {error}'.format(browser=driver.name, error=error))
         _log.info('Launching "%s" with url "%s"' % (driver.name, url))
         driver.get(url)
+
+    def diagnose_test_failure(self, diagnose_directory, error):
+        # FIXME: store a screenshoot or some debug data for later analysis before closing the browser.
+        self.close_browsers()
 
     def _get_first_executable_path_from_list(self, searchlist):
         searchpath = [os.path.curdir] + os.environ['PATH'].split(os.pathsep)
